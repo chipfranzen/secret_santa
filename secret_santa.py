@@ -1,37 +1,24 @@
-from collections import Counter
-from enum import Enum, unique
+from argparse import ArgumentParser
+from email.message import EmailMessage
 from itertools import combinations
 from random import sample
+import ssl
+import smtplib
+import yaml
 
 
-@unique
-class fam(Enum):
-    ANDREW = "andrew"
-    CHIP = "chip"
-    SARAH = "sarah"
-    SCOTT = "scott"
-    TERYN = "teryn"
-    THAO = "thao"
-
-
-fam_values = {x.value for x in fam}
-
-
-couples = [{fam.CHIP, fam.THAO}, {fam.SCOTT, fam.TERYN}, {fam.SARAH, fam.ANDREW}]
-
-
-def is_valid(chosen_edges):
+def is_valid(chosen_edges, fam):
     assert len(chosen_edges) == len(fam)
 
     givers = {x[0] for x in chosen_edges}
     receivers = {x[1] for x in chosen_edges}
 
-    assert givers == fam_values
-    assert receivers == fam_values
+    assert givers == fam
+    assert receivers == fam
     return True
 
 
-def draw():
+def draw(fam, couples):
     all_edges = combinations(fam, 2)
 
     valid_edges = [edge for edge in all_edges if set(edge) not in couples]
@@ -58,27 +45,65 @@ def draw():
         valid_edges.remove(chosen_edge)
         receiver = next(filter(lambda x: x != giver, chosen_edge))
 
-        chosen_edge = (giver.value, receiver.value)
+        chosen_edge = (giver, receiver)
         chosen_edges.append(chosen_edge)
 
         already_giving.add(giver)
         already_receiving.add(receiver)
 
-    if not is_valid(chosen_edges):
+    if not is_valid(chosen_edges, fam):
         return None
     else:
         return tuple(sorted(chosen_edges))
 
 
-def main():
-    draws = [draw() for _ in range(100000)]
+def get_valid_draw(fam, couples):
+    out_draw = None
+    while out_draw is None:
+        out_draw = draw(fam, couples)
+    return out_draw
 
-    valid_draws = [x for x in draws if x is not None]
-    print(valid_draws[1])
-    draw_counts = Counter(valid_draws)
-    print(len(draw_counts.keys()))
-    print(sorted(draw_counts.values()))
+
+def get_message(santa, elf, santa_email, sender_address):
+    msg = EmailMessage()
+    msg.set_content(f"TEST Hey {santa}, get a gift for {elf} this year! TEST")
+    msg["Subject"] = "TOP SECRET"
+    msg["From"] = sender_address
+    msg["To"] = santa_email
+    return msg
+
+
+def main(test=True):
+    with open("config.yml") as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
+    pwd = config["pwd"]
+    user = config["user"]
+    emails = config["email"]
+    couples = [set(couple) for couple in config["couples"]]
+    fam = set(emails.keys())
+
+    secret_santas = get_valid_draw(fam, couples)
+
+    if test:
+        server = smtplib.SMTP("localhost", 1025)
+
+        for santa, elf in secret_santas:
+            print(f"From: {emails[santa]}; To: {elf}")
+
+    else:
+        port = 465  # For SSL
+        context = ssl.create_default_context()
+        server = smtplib.SMTP_SSL("smtp.gmail.com", port, context=context)
+        server.login(user, pwd)
+
+    for santa, elf in secret_santas:
+        santa_email = emails[santa]
+        message = get_message(santa, elf, santa_email, user)
+        server.send_message(message)
 
 
 if __name__ == "__main__":
-    main()
+    parser = ArgumentParser()
+    parser.add_argument("--test", action="store_true")
+    args = parser.parse_args()
+    main(test=args.test)

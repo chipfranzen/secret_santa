@@ -1,0 +1,5 @@
+.python-version
+config.yml
+dist/
+*.egg-info/
+tags
