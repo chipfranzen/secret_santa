@@ -1,0 +1,16 @@
+user: example@example.com
+pwd: mysecretpassword
+
+email:
+  James: james@example.com
+  Jane: jane@example.com
+  Jim: jim@example.com
+  Jin: jin@example.com
+  John: john@example.com
+  Jones: jones@example.com
+
+couples:
+  - [James,Jane]
+  - [Jim,Jin]
+  - [John,Jones]
+
