@@ -66,7 +66,9 @@ def get_valid_draw(fam, couples):
 
 def get_message(santa, elf, santa_email, sender_address):
     msg = EmailMessage()
-    msg.set_content(f"Hey {santa}, get a gift for {elf} this year!")
+    msg.set_content(
+        f"Hey {santa}, get a gift for {elf} this year! 🤫🤐😉\n\nMerry Christmas! 🎅🤶🎄🦌🎁"
+    )
     msg["Subject"] = "TOP SECRET"
     msg["From"] = sender_address
     msg["To"] = santa_email
